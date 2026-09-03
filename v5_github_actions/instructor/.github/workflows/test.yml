@@ -1,23 +1,30 @@
 # 이 파일은 프로젝트 루트의 .github/workflows/test.yml 로 복사해서 사용합니다.
+# 경로 주의: .github (점 하나) / workflows (복수형 s) / test.yml
 name: 우리집 책장 CI/CD (테스트 + 빌드)
 
+# on: 트리거 - 언제 이 워크플로우를 실행할지
+#   push: 아무 브랜치에 push할 때마다 실행 (커밋 검증용)
+#   pull_request: PR을 만들거나 업데이트할 때도 실행
 on:
   push:
   pull_request:
 
 jobs:
+  # ─────────────────────────────────────────────
+  # 1단계: CI (테스트) — DB 없는 순수 로직만 검증
+  # ─────────────────────────────────────────────
   test:
     runs-on: ubuntu-latest # GitHub이 무료로 빌려주는 깨끗한 가상 컴퓨터 (Runner)
 
     steps:
       - name: 1. 저장소 코드 가져오기
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # 이 Runner 안으로 내 GitHub 코드를 복사해온다
 
       - name: 2. Python 설치하기
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
+          cache: pip # requirements.txt가 안 바뀌면 다음 실행부터는 설치를 건너뛰고 캐시 재사용
 
       - name: 3. 패키지 설치하기
         run: |
@@ -25,11 +32,11 @@ jobs:
           pip install -r requirements.txt
 
       - name: 4. 테스트 실행하기
-        # pytest 대신 python -m pytest를 쓰는 이유:
-        # tests/ 폴더에 __init__.py가 없으면 프로젝트 루트가 sys.path에 안 잡혀서
-        # 'services' 모듈을 못 찾는 ModuleNotFoundError가 날 수 있다.
+        # 'pytest -v' 대신 'python -m pytest -v'를 쓰는 이유:
+        # tests/ 폴더에 __init__.py가 없으면 pytest 단독 실행 시
+        # 프로젝트 루트가 sys.path에 안 잡혀서 'services' 모듈을 못 찾는 경우가 있다.
+        # python -m pytest는 실행 위치(=프로젝트 루트)를 sys.path에 자동으로 넣어줘서 이 문제를 막아준다.
         run: python -m pytest -v
-
 
   # ─────────────────────────────────────────────
   # 2단계: Build — 테스트를 통과한 코드만 Docker 이미지로 포장
@@ -38,6 +45,8 @@ jobs:
   build:
     needs: test
     runs-on: ubuntu-latest
+    # main 브랜치에 실제로 merge됐을 때만 이미지를 빌드/푸시한다.
+    # (feature 브랜치나 PR 단계에서는 테스트만 돌고 빌드는 하지 않음)
     if: github.ref == 'refs/heads/main'
 
     steps:
@@ -48,6 +57,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
+          # ⚠️ 여기 들어가는 값은 Docker Hub 계정 비밀번호가 아니라
+          # Docker Hub → Account Settings → Security → New Access Token 으로 발급한 토큰이다.
           password: ${{ secrets.DOCKER_TOKEN }}
 
       - name: 이미지 빌드 및 Docker Hub 업로드
