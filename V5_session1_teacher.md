@@ -6,7 +6,9 @@
 
 ## 	CI(test job) 확인	✅ 지난 시간에 완료 — .github/workflows/test.yml, tests/test_main.py 이미 있음
 
-## Dockerfile 저장소 루트에 추가	⬜ 오늘 첫 작업
+## 1단계 — Dockerfile 만들기
+
+저장소 루트에 새 파일 추가. app 폴더는 만들 필요 없습니다(컨테이너 내부 경로일 뿐).
 
 ## 1. `Dockerfile` — 상세 주석
 
@@ -74,7 +76,10 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 ---
-## docker-compose.yml 추가 — 로컬에서 api+web+db 동시 실행용	⬜ CI/CD 자동화 자체엔 필수 아님, 있으면 로컬 개발 편함
+## 2단계 — docker-compose.yml 만들기
+
+학생들이 docker compose로 실습할 거라면 이 파일이 필수입니다 (Dockerfile 하나만으로는 docker compose up이 안 됩니다).
+- docker-compose.yml 추가 — 로컬에서 api+web+db 동시 실행용	⬜ CI/CD 자동화 자체엔 필수 아님, 있으면 로컬 개발 편함
 
 ## 2. `docker-compose.yml` — 상세 주석 (로컬 개발용, `build: .` 버전)
 
@@ -185,11 +190,80 @@ volumes:
 ```
 
 ---
+지금은 build: .(로컬에서 직접 빌드)로 둡니다. image:(Docker Hub에서 받아쓰기)로 바꾸는 건 나중에 실제 서버 배포할 때만입니다 — 오늘은 신경 안 쓰셔도 됩니다.
+
+
+## 3단계 — .env 확인 (지금 상태 그대로 OK)
 
 ## 로컬에서 직접 docker build 테스트	⬜ 가장 중요 — 여기서 문제 다 잡고 넘어가기
 
+DATABASE_URL은 compose 파일이 위 세 값을 조합해서 자동으로 만들어주므로 추가 안 해도 됩니다.
+
+## 4단계 — .gitignore에 .env 포함 확인
+
+```
+.env
+__pycache__
+*.pyc
+uploads/
+```
+Public 저장소라 이 확인을 꼭 먼저 하고 넘어가세요.
+---
+
 
 ---
+## 5단계 — 로컬 테스트 (docker run이 아니라 docker compose)
+```bash
+docker compose up --build
+```
+
+/docs(FastAPI, 8000번), Streamlit 화면(8501번) 둘 다 접속해서 정상 동작 확인
+문제 있으면 여기서 먼저 잡고 넘어가기 — GitHub Actions까지 가서 디버깅하면 훨씬 힘듭니다
+확인 끝나면 Ctrl+C 후 docker compose down으로 정리
+
+
+---
+
+## 	6단계 — Docker Hub Access Token 발급
+Docker Hub → Account Settings → Security → New Access Token
+Access permissions를 Read & Write로 변경 (기본값 Public Repo Read-only로는 push 불가)
+발급된 토큰 문자열 즉시 복사해두기 (한 번만 보여줌)
+
+---
+## 7단계 — GitHub Secrets 등록
+
+저장소 → Settings → Secrets and variables → Actions
+
+Name	Value
+DOCKER_USERNAME	Docker Hub 계정명
+DOCKER_TOKEN	6단계에서 발급한 토큰
+
+이번 home_library 저장소가 이전 teacher-home-library와 별개 저장소라면, Secrets도 저장소마다 각각 새로 등록해야 합니다.
+
+
+## 4. 오늘 새로 등록한 GitHub Secrets 요약
+
+| Name | Value | 발급처 |
+| --- | --- | --- |
+| `DOCKER_USERNAME` | Docker Hub 계정명 | — |
+| `DOCKER_TOKEN` | Access Token (비밀번호 아님, `Read & Write` 권한) | Docker Hub → Account Settings → Security → New Access Token |
+
+---
+
+## GitHub Secrets 등록: DOCKER_USERNAME, DOCKER_TOKEN	⬜
+
+## 5. 로컬 테스트 vs GitHub Actions Build — 다시 한번 구분
+
+| | 무엇을 하나 | 어떤 도구 | `.env` 필요? |
+| --- | --- | --- | --- |
+| 로컬 테스트 | api+web+db 세 컨테이너를 실제로 띄워서 눈으로 확인 | `docker compose up --build` | ✅ 필요 (컨테이너가 실행되니까) |
+| GitHub Actions `build` job | 이미지를 빌드해서 Docker Hub에 올리기만 함 (실행 X) | `docker/build-push-action` | ❌ 불필요 |
+
+---
+
+## 	8단계 — test.yml에 build job 추가
+
+기존 test: job 아래, 같은 jobs: 들여쓰기 수준으로 이어붙입니다.
 
 ## 3. `.github/workflows/test.yml` — 완성본 (`test` + `build`) 상세 주석
 
@@ -307,45 +381,19 @@ jobs:
           # 자기 계정으로 그대로 복사해도 코드 수정 없이 바로 동작한다.
 ```
 
----
-
-## 	Docker Hub Access Token 발급 (Read & Write 권한)	⬜
-
-## 4. 오늘 새로 등록한 GitHub Secrets 요약
-
-| Name | Value | 발급처 |
-| --- | --- | --- |
-| `DOCKER_USERNAME` | Docker Hub 계정명 | — |
-| `DOCKER_TOKEN` | Access Token (비밀번호 아님, `Read & Write` 권한) | Docker Hub → Account Settings → Security → New Access Token |
-
----
-
-## GitHub Secrets 등록: DOCKER_USERNAME, DOCKER_TOKEN	⬜
-
-## 5. 로컬 테스트 vs GitHub Actions Build — 다시 한번 구분
-
-| | 무엇을 하나 | 어떤 도구 | `.env` 필요? |
-| --- | --- | --- | --- |
-| 로컬 테스트 | api+web+db 세 컨테이너를 실제로 띄워서 눈으로 확인 | `docker compose up --build` | ✅ 필요 (컨테이너가 실행되니까) |
-| GitHub Actions `build` job | 이미지를 빌드해서 Docker Hub에 올리기만 함 (실행 X) | `docker/build-push-action` | ❌ 불필요 |
-
----
-
-## 	test.yml에 build job 추가	⬜
-
-## 6. push 명령어
-
-```bash
-git add Dockerfile docker-compose.yml .github
-git commit -m "본인이름_비NCS_test"
-git push origin 비NCS_영문이름
-```
 
 ## 	git add/commit/push	⬜
+```
+git add Dockerfile docker-compose.yml .github
+git commit -m "..."
+git push 
+```
 
-## 	Actions 탭에서 test → build 순서로 초록불 확인	⬜
+## 	10단계 — 확인
+Actions 탭 → test 초록불 → 이어서 build 초록불 (main 브랜치일 때만 뜸)
+Docker Hub 본인 계정에서 home-library:latest 이미지 업로드 확인
 
-## Docker Hub 웹사이트에서 이미지 업로드 확인
+오늘 수업의 핵심 한 줄 요약: "로컬 테스트는 docker compose, GitHub Actions의 빌드는 docker/build-push-action(compose 아님) — 이 둘은 서로 다른 도구지만 같은 Dockerfile을 공유한다"는 걸 학생들에게 짚어주시면 오늘 흐름이 한 번에 이어질 것 같습니다.
 
 push 후 Actions 탭에서 `test` → `build` 순서로 초록불이 뜨는지, [Docker Hub](https://hub.docker.com)에 `home-library:latest` 이미지가 실제로 올라왔는지 확인하면 1차 세션이 끝납니다.
 
