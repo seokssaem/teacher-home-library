@@ -4,6 +4,10 @@
 
 ---
 
+## 	CI(test job) 확인	✅ 지난 시간에 완료 — .github/workflows/test.yml, tests/test_main.py 이미 있음
+
+## Dockerfile 저장소 루트에 추가	⬜ 오늘 첫 작업
+
 ## 1. `Dockerfile` — 상세 주석
 
 ```dockerfile
@@ -70,6 +74,7 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 ---
+## docker-compose.yml 추가 — 로컬에서 api+web+db 동시 실행용	⬜ CI/CD 자동화 자체엔 필수 아님, 있으면 로컬 개발 편함
 
 ## 2. `docker-compose.yml` — 상세 주석 (로컬 개발용, `build: .` 버전)
 
@@ -178,6 +183,11 @@ services:
 volumes:
   booklib_pgdata:
 ```
+
+---
+
+## 로컬에서 직접 docker build 테스트	⬜ 가장 중요 — 여기서 문제 다 잡고 넘어가기
+
 
 ---
 
@@ -299,6 +309,8 @@ jobs:
 
 ---
 
+## 	Docker Hub Access Token 발급 (Read & Write 권한)	⬜
+
 ## 4. 오늘 새로 등록한 GitHub Secrets 요약
 
 | Name | Value | 발급처 |
@@ -307,6 +319,8 @@ jobs:
 | `DOCKER_TOKEN` | Access Token (비밀번호 아님, `Read & Write` 권한) | Docker Hub → Account Settings → Security → New Access Token |
 
 ---
+
+## GitHub Secrets 등록: DOCKER_USERNAME, DOCKER_TOKEN	⬜
 
 ## 5. 로컬 테스트 vs GitHub Actions Build — 다시 한번 구분
 
@@ -317,6 +331,8 @@ jobs:
 
 ---
 
+## 	test.yml에 build job 추가	⬜
+
 ## 6. push 명령어
 
 ```bash
@@ -325,4 +341,11 @@ git commit -m "본인이름_비NCS_test"
 git push origin 비NCS_영문이름
 ```
 
+## 	git add/commit/push	⬜
+
+## 	Actions 탭에서 test → build 순서로 초록불 확인	⬜
+
+## Docker Hub 웹사이트에서 이미지 업로드 확인
+
 push 후 Actions 탭에서 `test` → `build` 순서로 초록불이 뜨는지, [Docker Hub](https://hub.docker.com)에 `home-library:latest` 이미지가 실제로 올라왔는지 확인하면 1차 세션이 끝납니다.
+
